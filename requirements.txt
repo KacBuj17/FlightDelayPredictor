@@ -2,4 +2,8 @@ jupyter
 pandas
 matplotlib
 seaborn
-meteostat
+openmeteo-requests 
+requests-cache
+retry-requests
+pyarrow
+fastparquet
