@@ -12,3 +12,6 @@ ENV/
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 Thumbs.db
+
+.cache.sqlite
+*.pkl
