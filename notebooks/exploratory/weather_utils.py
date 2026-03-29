@@ -168,7 +168,7 @@ def get_weather_for_flights(flights_df, force_update=False):
     )
 
     drop_cols = ['IATA_CODE', 'ORIGIN_KEY', 'time', 'weather_key', 'time_str', 
-                 'LATITUDE', 'LONGITUDE', 'scheduled_datetime']
+                 'LATITUDE', 'LONGITUDE']
     final_df.drop(columns=[c for c in drop_cols if c in final_df.columns], inplace=True)
 
     print(f"Merge zakończony. Sukces dopasowania: {final_df['temperature_2m'].notna().mean():.2%}")
@@ -326,12 +326,15 @@ def export_master_weather(df, output_path="../../data/kaggle/master_weather_2019
     Wyodrębnia unikalną bazę pogodową z połączonego datasetu lotów.
     """
     print("Przygotowanie bazy referencyjnej pogody...")
-    
+    possible_time_cols = ['weather_hour_key', 'time', 'scheduled_datetime']
+    actual_time_col = next((c for c in possible_time_cols if c in df.columns), None)
+    if not actual_time_col:
+        raise KeyError(f"Nie znaleziono kolumny czasu. Dostępne kolumny: {df.columns.tolist()}")
     # 1. Definiujemy kolumny, które chcemy zachować w bazie pogodowej
     # Mapujemy Twoje kolumny na standardowe nazwy dla bazy master
     weather_mapping = {
         'ORIGIN': 'ORIGIN_KEY',
-        'weather_hour_key': 'time'
+        actual_time_col: 'time'
     }
     
     # Kolumny z danymi pogodowymi (te, które już masz w DF)
@@ -342,7 +345,7 @@ def export_master_weather(df, output_path="../../data/kaggle/master_weather_2019
     
     # 2. Wybieramy potrzebne dane i zmieniamy nazwy na uniwersalne
     # Wybieramy ORIGIN, weather_hour_key oraz wszystkie dane pogodowe
-    cols_to_extract = ['ORIGIN', 'weather_hour_key'] + data_cols
+    cols_to_extract = ['ORIGIN', actual_time_col] + [c for c in data_cols if c in df.columns]
     master_weather = df[cols_to_extract].copy()
     master_weather = master_weather.rename(columns=weather_mapping)
     
