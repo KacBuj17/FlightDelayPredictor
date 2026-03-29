@@ -1,5 +1,17 @@
 # FlightDelayPredictor
+Setup instructions:
 
+Install python and check the version. Use the latest one. Setup .venv or other option you prefer.
+```
+python --version
+python -m venv .venv
+source .venv/bin/activate #or similar command for other shells
+```
+
+Installing dependencies:
+```
+pip install -r requirements.txt
+```
 
 ## Large File Tracking
 Use `git-lfs` tool for files that are too large for git repo. Install it from: https://git-lfs.com/ Then follow the guide on the main page there.
