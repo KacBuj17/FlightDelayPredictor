@@ -34,11 +34,9 @@ def get_weather_for_flights(flights_df, force_update=False):
         print("Dane pogodowe są już obecne w datasetu. Pomijam merge.")
         return flights_df
     
-    # 1. Przygotowanie danych i klienta API
     df = flights_df.copy()
     airports_df = load_airport_data()
     
-    # Konfiguracja oficjalnego SDK Open-Meteo z lokalnym cache zapytan
     cache_session = requests_cache.CachedSession('.cache', expire_after=-1)
     retry_session = retry(cache_session, retries=5, backoff_factor=2)
     openmeteo = openmeteo_requests.Client(session=retry_session)
@@ -56,7 +54,6 @@ def get_weather_for_flights(flights_df, force_update=False):
     cache_file = os.path.join(cache_dir, "weather_cache_master.pkl")
     if not os.path.exists(cache_dir): os.makedirs(cache_dir, exist_ok=True)
 
-    # 2. Wczytywanie Cache
     all_weather_dfs = []
     done_origins = set()
 
@@ -71,7 +68,6 @@ def get_weather_for_flights(flights_df, force_update=False):
         except Exception as e:
             print(f"Błąd odczytu cache: {e}")
 
-    # 3. Filtrowanie
     to_process = unique_locs[~unique_locs['ORIGIN'].isin(done_origins)]
     total_to_download = len(to_process)
     
@@ -80,7 +76,6 @@ def get_weather_for_flights(flights_df, force_update=False):
     else:
         print(f"Do pobrania: {total_to_download} / {len(unique_locs)} lotnisk.")
 
-    # 4. Pętla pobierania (SDK Style)
     url = "https://archive-api.open-meteo.com/v1/archive"
     
     for i, (_, row) in enumerate(to_process.iterrows()):
@@ -124,7 +119,7 @@ def get_weather_for_flights(flights_df, force_update=False):
             os.replace(cache_file + ".tmp", cache_file)
             
             print(f"[{i+1}/{total_to_download}] OK: {origin}")
-            time.sleep(1.5) # SDK jest szybkie, ale szanujemy limity API
+            time.sleep(1.5)
 
         except Exception as e:
             if "429" in str(e):
@@ -133,7 +128,6 @@ def get_weather_for_flights(flights_df, force_update=False):
             print(f"Błąd przy {origin}: {e}")
             continue
 
-    # 5. Przygotowanie danych pogodowych
     if not all_weather_dfs: 
         return df
     
@@ -142,7 +136,6 @@ def get_weather_for_flights(flights_df, force_update=False):
     weather_full['time'] = pd.to_datetime(weather_full['time'], utc=True).dt.tz_localize(None)
     weather_full['ORIGIN_KEY'] = weather_full['ORIGIN_KEY'].astype(str).str.strip()
 
-    # 7. MERGE Z GŁÓWNYM DATAFRAME
     print("Przygotowanie kluczy czasowych w lotach...")
     
     df['time_str'] = df['CRS_DEP_TIME'].astype(int).astype(str).str.zfill(4).replace('2400', '0000')
@@ -174,7 +167,6 @@ def get_weather_for_flights(flights_df, force_update=False):
         how='left'
     )
 
-    # Sprzątanie kolumn pomocniczych
     drop_cols = ['IATA_CODE', 'ORIGIN_KEY', 'time', 'weather_key', 'time_str', 
                  'LATITUDE', 'LONGITUDE', 'scheduled_datetime']
     final_df.drop(columns=[c for c in drop_cols if c in final_df.columns], inplace=True)
