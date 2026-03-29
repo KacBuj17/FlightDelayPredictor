@@ -1,52 +1,46 @@
 import pandas as pd
 import os
 from datetime import datetime
-from weather_utils import get_weather_for_flights
+from weather_utils import get_weather_for_flights, export_master_weather,inject_weather
 
-MASTER_CACHE_PATH = "../../data/kaggle/weather_cache_master.pkl"
+MASTER_PARQUET_PATH = "../../data/kaggle/master_weather_2019_2023.parquet"
 
 def sync_weather_repository(flights_df):
     """
-    Sprawdza, czy dla lotnisk i dat w flights_df mamy już dane w cache.
+    Używa pliku Parquet jako głównej bazy danych. 
+    Sprawdza braki, dociąga je i aktualizuje plik Parquet.
     """
-    print("--- Synchronizacja Repozytorium Pogodowego ---")
+    print("--- Synchronizacja z bazą Parquet ---")
     
     needed_origins = flights_df['ORIGIN'].unique()
-    start_date_needed = pd.to_datetime(flights_df['FL_DATE'], utc=True).min().tz_localize(None)
-    end_date_needed = pd.to_datetime(flights_df['FL_DATE'], utc=True).max().tz_localize(None)
-    
-    if os.path.exists(MASTER_CACHE_PATH):
-        cache_df = pd.read_pickle(MASTER_CACHE_PATH)
+    start_needed = pd.to_datetime(flights_df['FL_DATE']).min().tz_localize(None)
+    end_needed = pd.to_datetime(flights_df['FL_DATE']).max().tz_localize(None)
+
+    if os.path.exists(MASTER_PARQUET_PATH):
+        master_df = pd.read_parquet(MASTER_PARQUET_PATH)
+        master_df['time'] = pd.to_datetime(master_df['time']).dt.tz_localize(None)
+        cached_origins = master_df['ORIGIN_KEY'].unique()
+        m_min, m_max = master_df['time'].min(), master_df['time'].max()
         
-        if not cache_df.empty:
-            cached_origins = cache_df['ORIGIN_KEY'].unique()
-            cache_times = pd.to_datetime(cache_df['time'], utc=True).dt.tz_localize(None)
-            cache_min = cache_times.min()
-            cache_max = cache_times.max()
-            
-            missing_airports = set(needed_origins) - set(cached_origins)
-            needs_update = (
-                len(missing_airports) > 0 or 
-                start_date_needed < cache_min or 
-                end_date_needed > cache_max
-            )
-            
-            if not needs_update:
-                print("Pomyślnie zweryfikowano: Wszystkie dane są już w cache. Pomijam pobieranie.")
-                return get_weather_for_flights(flights_df, force_update=False)
-            else:
-                if missing_airports:
-                    print(f"Znaleziono nowe lotniska: {list(missing_airports)}")
-                if start_date_needed < cache_min or end_date_needed > cache_max:
-                    print(f"Zakres w cache: {cache_min.date()} do {cache_max.date()}")
-                    print(f"Zakres potrzebny: {start_date_needed.date()} do {end_date_needed.date()}")
-        else:
-            print("Cache jest pusty.")
-    
-    print("Uruchamiam proces uzupełniania danych przez API...")
-    updated_df = get_weather_for_flights(flights_df, force_update=True)
-    
-    return updated_df
+        missing_airports = set(needed_origins) - set(cached_origins)
+        needs_update = (
+            len(missing_airports) > 0 or 
+            start_needed < m_min or 
+            end_needed > m_max
+        )
+        
+        if not needs_update:
+            print("Wszystko jest w Parquet. Łączę dane...")
+            return inject_weather(flights_df, MASTER_PARQUET_PATH)
+    else:
+        print("Brak pliku Parquet. Tworzę nową bazę...")
+        needs_update = True
+    if needs_update:
+        print("Uruchamiam downloader API dla brakujących danych...")
+        df_enriched = get_weather_for_flights(flights_df, force_update=True)
+        export_master_weather(df_enriched, MASTER_PARQUET_PATH)
+        
+        return df_enriched
 
 def clean_delay_columns(df):
     """
