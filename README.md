@@ -30,15 +30,15 @@ As the Weather API has request limits and also it takes hours to fetch the data 
 https://github.com/Flnny/Delay-data
 
 To run the notebook successfully, please download the dataset from the following source:
-flight_event_data
+[flight_event_data](https://maven-datasets.s3.amazonaws.com/Airline+Flight+Delays/Airlines+Airports+Cancellation+Codes+%26+Flights.zip)
 
 After downloading, extract the contents and place all files into the data/ directory in the project root.
 
 The directory structure should look like this:
 
-data/
-├── airlines.csv
-├── airports.csv
-├── cancellation_codes.csv
-└── flights.csv
+data/ <br/>
+├── airlines.csv <br/>
+├── airports.csv <br/>
+├── cancellation_codes.csv <br/>
+└── flights.csv <br/>
 
