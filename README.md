@@ -26,3 +26,19 @@ My dataset doesn't contain the info about the airports coords. So I fetch the da
 
 ## Info about weather related parquet files
 As the Weather API has request limits and also it takes hours to fetch the data per timestamp. The `master-weather_2019_2023.parquet` holds the values for Airports. If you need to fetch data for new timestamp use: `sync_weather_repository()` function from weather_manager file. It will merge the new data into the existing parquet file. But first it checks if it's not already present there.
+
+https://github.com/Flnny/Delay-data
+
+To run the notebook successfully, please download the dataset from the following source:
+flight_event_data
+
+After downloading, extract the contents and place all files into the data/ directory in the project root.
+
+The directory structure should look like this:
+
+data/
+├── airlines.csv
+├── airports.csv
+├── cancellation_codes.csv
+└── flights.csv
+
